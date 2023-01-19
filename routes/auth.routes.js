@@ -1,159 +1,245 @@
-const express = require('express')
-const router = express.Router()
-
-// ℹ️ Handles password encryption
-const bcrypt = require('bcrypt')
-const mongoose = require('mongoose')
-
-// How many rounds should bcrypt run the salt (default - 10 rounds)
+const router = require("express").Router();
+const bcryptjs = require('bcryptjs')
+const session = require("express-session")
+const mongo = require("connect-mongo")
+const User = require('../models/User.model')
+const Book = require('../models/Book.model')
 const saltRounds = 10
 
-// Require the User model in order to interact with the database
-const User = require('../models/User.model')
+const { isLoggedIn, isLoggedOut } = require('../middleware/route-guard.js');
 
-// Require necessary (isLoggedOut and isLoggedIn) middleware in order to control access to specific routes
-const isLoggedOut = require('../middleware/isLoggedOut')
-const isLoggedIn = require('../middleware/isLoggedIn')
+/* Sign In page */
+router.post('/search', async (req, res) => {
+console.log('SEE HERE', req.body)
 
-// GET /auth/signup
-router.get('/signup', isLoggedOut, (req, res) => {
-  res.render('auth/signup')
+const searchTerm = req.body.search
+const detailsBooks = await Book.findOne({title: searchTerm})
+
+res.render('auth/book-details', {detailsBooks})
 })
 
-// POST /auth/signup
-router.post('/signup', isLoggedOut, (req, res) => {
-  const { username, email, password } = req.body
+/* Sign In page */
+/* GET View Homepage(with Sign In form*/
+router.get("/login", (req, res) => {
+  res.render("auth/login");
+});
 
-  // Check that username, email, and password are provided
-  if (username === '' || email === '' || password === '') {
-    res.status(400).render('auth/signup', {
-      errorMessage: 'All fields are mandatory. Please provide your username, email and password.',
-    })
+/* POST Login User */
+router.post('/login', (req, res) => {
+  const { email, password } = req.body;
 
-    return
-  }
-
-  if (password.length < 6) {
-    res.status(400).render('auth/signup', {
-      errorMessage: 'Your password needs to be at least 6 characters long.',
-    })
-
-    return
-  }
-
-  //   ! This regular expression checks password for special characters and minimum length
-  /*
-  const regex = /(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{6,}/;
-  if (!regex.test(password)) {
-    res
-      .status(400)
-      .render("auth/signup", {
-        errorMessage: "Password needs to have at least 6 chars and must contain at least one number, one lowercase and one uppercase letter."
+  if (email === '' || password === '') {
+    res.render('auth/login', {
+      errorMessage: 'Please enter both, email and password to login.'
     });
     return;
   }
-  */
-
-  // Search the database for a user with the username submitted in the form
-  User.findOne({ username }).then(found => {
-    // If the user is found, send the message username is taken
-    if (found) {
-      return res.status(400).render('auth/signup', { errorMessage: 'Username already taken.' })
-    }
-
-    // if user is not found, create a new user - start with hashing the password
-    return bcrypt
-      .genSalt(saltRounds)
-      .then(salt => bcrypt.hash(password, salt))
-      .then(hashedPassword => {
-        // Create a user and save it in the database
-        return User.create({
-          username,
-          password: hashedPassword,
-        })
-      })
-      .then(user => {
-        // Bind the user to the session object
-        req.session.user = user
-        res.redirect('/')
-      })
-      .catch(error => {
-        if (error instanceof mongoose.Error.ValidationError) {
-          return res.status(400).render('auth/signup', { errorMessage: error.message })
-        }
-        if (error.code === 11000) {
-          return res
-            .status(400)
-            .render('auth/signup', {
-              errorMessage: 'Username need to be unique. The username you chose is already in use.',
-            })
-        }
-        return res.status(500).render('auth/signup', { errorMessage: error.message })
-      })
-  })
-})
-
-// GET /auth/login
-router.get('/login', isLoggedOut, (req, res) => {
-  res.render('auth/login')
-})
-
-// POST /auth/login
-router.post('/login', isLoggedOut, (req, res, next) => {
-  const { username, email, password } = req.body
-
-  if (!username) {
-    return res.status(400).render('auth/login', { errorMessage: 'Please provide your username.' })
-  }
-
-  // Here we use the same logic as above
-  // - either length based parameters or we check the strength of a password
-  if (password.length < 8) {
-    return res
-      .status(400)
-      .render('auth/login', {
-        errorMessage: 'Your password needs to be at least 8 characters long.',
-      })
-  }
-
-  // Search the database for a user with the email submitted in the form
   User.findOne({ email })
+    .populate('books')
     .then(user => {
-      // If the user isn't found, send an error message that user provided wrong credentials
       if (!user) {
-        return res.status(400).render('auth/login', { errorMessage: 'Wrong credentials.' })
+        res.render('auth/login', {
+          errorMessage: 'Email is not registered. Try with other email.'
+        });
+        return;
       }
+      else if (bcryptjs.compareSync(password, user.password)) {
+        console.log(user, "this is my user")
+        req.session.currentUser = user
+        res.redirect('/profile');  
+      } else {
+        res.render('auth/login', { errorMessage: 'Incorrect password.' });
+      }
+    })
+    .catch(error => next(error))
+});
 
-      // If user is found based on the username, check if the in putted password matches the one saved in the database
-      bcrypt.compare(password, user.password).then(isSamePassword => {
-        if (!isSamePassword) {
-          return res.status(400).render('auth/login', { errorMessage: 'Wrong credentials.' })
-        }
+/*router.get("/profile", isLoggedIn, (req, res, next) => {
+  res.render("user-profile", { user: req.session.currentUser });
+});*/
 
-        req.session.user = user
-        // req.session.user = user._id; // ! better and safer but in this case we saving the entire user object
-        return res.redirect('/')
+
+/* Logout User */
+router.post('/logout', (req, res) => {
+  req.session.destroy(err => {
+    if (err) next(err);
+    res.redirect('/');
+  });
+});
+
+/* Signup page */
+/* GET View Signup Form */
+router.get("/signup", (req, res) => {
+    res.render("signup");
+  });
+
+/* POST Create User */
+router.post("/signup", (req, res) => {
+
+  const { username, email, password } = req.body;
+
+  bcryptjs
+    .genSalt(saltRounds)
+    .then(salt => bcryptjs.hash(password, salt))
+    .then(hashedPassword => {
+      return User.create({
+        username,
+        email,
+        password: hashedPassword
+      });
+    })
+    .then(userFromDB => {
+      console.log('Newly created user is: ', userFromDB);
+
+    })
+    .then( () => {
+      res.redirect('/login');
+    })
+    .catch(error => {
+      if (error.code === 11000) {
+        res.status(500).render('signup', {
+          errorMessage: 'Username or Email already taken.'
+        });
+      } else {
+        next(error);
+      }
+    });
+});
+
+
+/* Profile Page */
+/* GET View Profile Page */
+router.get("/profile", isLoggedIn, async (req, res, next) => {
+    const mostCurrentUser = await User.findById(req.session.currentUser._id) 
+    .populate('books')
+    res.render("auth/profile", { user: mostCurrentUser } );
+  }); // --> Working code!
+
+  /*router.get('/profile', (req, res, next) => {
+    User.find()
+    .populate("books")
+    .then ((listBooks) => {
+        console.log(listBooks)
+      res.render('profile', {listBooks})
+    })
+    .catch((err) => {
+        console.error("Error displaying Books: ", err);
       })
-    })
+  });*/
 
-    .catch(err => {
-      // in this case we are sending the error handling to the error handling middleware that is defined in the error handling file
-      // you can just as easily run the res.status that is commented out below
-      next(err)
-      // return res.status(500).render("auth/login", { errorMessage: err.message });
+  /* GET View Update Profile Page*/
+router.get('/update-profile/:id', isLoggedIn, (req, res, next) => {
+    User.findById(req.params.id)
+    .then ((toUpdateUser) => {
+      console.log(toUpdateUser)
+      res.render('auth/update-profile', {toUpdateUser})
     })
+  });
+
+/* POST Update Profile/User */
+router.post('/update-profile/:userId', async (req, res) => {
+  try {
+    console.log("editing profile-function opens!!!");
+    const {username, email, password, firstName, lastName, favoriteBook, books} = req.body; 
+    const {userId} = req.params
+    const updatedUser = await User.findByIdAndUpdate(userId, {username, email, password, firstName, lastName, favoriteBook, books}, {new: true})
+    
+    res.redirect(`/profile`); // /${updatedUser._id}
+  } catch (error){
+      console.log ("Updating the profile in the database failed", (error))
+    }
 })
 
-// GET /auth/logout
-router.get('/logout', isLoggedIn, (req, res) => {
-  req.session.destroy(err => {
-    if (err) {
-      res.status(500).render('auth/logout', { errorMessage: err.message })
-      return
-    }
+router.post('/edit-book/:bookId', async (req, res) => { 
+  try {
+    console.log("editing function opens!!!")
+      const {title, author, genre, bookCover, plot, isbn} = req.body;
+      const {bookId} = req.params
+      const updatedBook = await Book.findByIdAndUpdate(bookId, {title, author, genre, plot, isbn}, {new: true})
+       res.redirect(`/book-details/${updatedBook._id}`);
+  } catch (error){
+      console.log ("Updating a book in the database failed", (error))
+     }
+    })
 
+/* POST Delete Profile/User */
+router.post('/auth/:id', (req, res) => {
+  console.log("CHECK HERE PARAMS ----->", req.params)
+  User.findByIdAndDelete(req.params.id)
+  .then (() => {
     res.redirect('/')
   })
-})
+});
 
-module.exports = router
+
+/* Create-book Page */
+/* GET View Create-book Form */
+router.get("/create-book", isLoggedIn, (req, res, next) => {
+    res.render("auth/create-book");
+  });
+  
+/* POST Create New Book */
+
+router.post('/create-book', async (req, res) => {
+try {
+  console.log(req.body)
+  const {title, author, genre, bookCover, plot, isbn} = req.body;
+  const owner = req.session.currentUser._id
+  const newBook = await Book.create({title, author, genre, bookCover, plot, isbn, owner});
+  const updatedUser = await User.updateOne({_id:owner}, {$push: {books: [newBook]}})
+  console.log("updated User:", updatedUser);
+  res.redirect(`/book-details/${newBook._id}`);
+} catch (error){
+  console.log ("Creating and storing a book in the database failed", (error))}
+}) 
+
+/* Book details page */
+/* GET Route - View Book */
+router.get("/book-details/:id", isLoggedIn, (req, res, next) => {
+ Book.findById(req.params.id)
+ .then ((detailsBooks) => {
+  console.log(detailsBooks, "here");
+  res.render('auth/book-details', {detailsBooks})
+})
+.catch((err) => {
+    console.error("Error viewing Details: ", err);
+  })
+});
+
+/* Get Route - Update Book */
+router.get('/edit-book/:id', isLoggedIn, (req, res, next) => {
+  Book.findById(req.params.id)
+  .then ((toUpdateBook) => {
+    console.log(toUpdateBook)
+    res.render('auth/edit-book', {toUpdateBook})
+  })
+});
+
+router.post('/edit-book/:bookId', async (req, res) => { 
+  try {
+    console.log("editing function opens!!!")
+      const {title, author, genre, bookCover, plot, isbn} = req.body;
+      const {bookId} = req.params
+      const updatedBook = await Book.findByIdAndUpdate(bookId, {title, author, genre, plot, isbn}, {new: true})
+       res.redirect(`/book-details/${updatedBook._id}`);
+  } catch (error){
+      console.log ("Updating a book in the database failed", (error))
+     }
+    })
+
+/* Books List Page */
+/* GET Route - View Book List */
+router.get('/books-list', isLoggedIn, (req, res, next) => {
+ Book.find()
+  .then ((listBooks) => {
+    res.render('auth/books-list', {listBooks})
+  })
+});
+
+/*  ADMIN                 */
+/* POST ROUTE - Edit books from books list */
+/* DELETE Route - books list*/
+/* DELETE Route - books list -- comment section*/
+
+
+module.exports = router;
