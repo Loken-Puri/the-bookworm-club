@@ -1,2 +1,33 @@
-<h1><%= appTitle %> 🚀</h1>
-<p>Welcome Ironhacker!</p>
+<div class="full-screen-container">
+  <div class="form-container">
+    <h3 class="form-title">Welcome to the Bookworms Club!</h3>
+    <img
+      id="big_logo"
+      src="/images/bookworms_logo_big.png"
+      alt="bookworms logo"
+    />
+    <h4 class="form-text">
+      A place to keep track of the books you read and to see what others are
+      reading.
+    </h4>
+    <form action="/login" method="POST">
+      <div class="input-group">
+        <label for="email">Email</label>
+        <input type="text" id="email" name="email" required />
+      </div>
+      <div class="input-group">
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" required />
+      </div>
+      <button type="submit" class="form-btn">Sign In</button>
+      <div class="text-center">
+        <p>Not a member? <a href="/signup">Sign Up</a></p>
+      </div>
+    </form>
+    <div>
+      <% if (typeof errorMessage !== 'undefined') {%>
+      <p><%= errorMessage%></p>
+      <%} %>
+    </div>
+  </div>
+</div>

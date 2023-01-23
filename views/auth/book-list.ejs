@@ -1,0 +1,45 @@
+<div id="bcg-booklist">
+    <div id="content-booklist">
+      <h2 id="listbook-title-div">List of Books <a href="/create-book"
+        class="list-create-btn">Create book</a></h2>
+       
+      </div>
+    
+      <div class="books-list-body">
+        <% listBooks.forEach(book => { %>
+        <div class="book-card">
+          <div class="book-cover">
+            <% if (book.bookCover) {%>
+            <img
+              class="placeholder"
+              src="<%= book.bookCover %>"
+              alt="picture of book cover"
+            />
+            <% } else { %>
+            <img
+              class="placeholder"
+              src="https://images.unsplash.com/photo-1602399481667-07536109851e?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=687&q=80"
+              alt="picture unable to load"
+            />
+            <%} %>
+          </div>
+          <div class="book-details">
+            <p class="book-title"><%= book.title %></p>
+            <p>by <%= book.author %></p>
+            <p><%= book.genre %></p>
+            <br />
+            <p><%= book.plot %></p>
+            <br />
+            <p>ISBN: <%= book.isbn %></p>
+            <form action="/book-details/<%= book.id %>" method="GET">
+              <button class="seedetails-btn" type="submit">See Details</button>
+            </form>
+          </div>
+        </div>
+  
+        <% }) %>
+      </div>
+    </div>
+  </div>
+  <!-- class="placeholder" src="https://images.unsplash.com/photo-1602399481667-07536109851e?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=687&q=80" alt="picture unable to load" -->
+  

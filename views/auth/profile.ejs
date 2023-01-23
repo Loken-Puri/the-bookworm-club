@@ -1,0 +1,43 @@
+<div class="full-screen-container-profile">
+  <div id="profile-columns">
+    <div id="profile-content">
+      <h3>Profile Page</h3>
+      <% if(user) { %>
+      <h2>Welcome, <%= user.username %>!</h2>
+      <p>This is your Bookworms profile page!</p>
+      <% } else { %>
+      <p>Still not logged in user, sorry!</p>
+      <% } %>
+
+      <!-- <button>
+          <a class="search-btn" href="/create-book">Create Book</a>
+        </button> -->
+      <div class="btn-div">
+        <form action="/create-book" method="GET">
+          <button class="profile-btn" type="submit">Create Book</button>
+        </form>
+
+        <form action="/update-profile/<%= user._id %>" method="GET">
+          <button class="profile-btn" type="submit">Update Profile</button>
+        </form>
+
+        <form action="/auth/<%= user._id %>" method="POST">
+          <button class="profile-btn" type="submit">Delete Profile</button>
+        </form>
+
+        <form id="logout-form" action="/logout" method="POST">
+          <button class="profile-btn">Logout<span> </span></button>
+        </form>
+      </div>
+    </div>
+    <div id="book-list">
+      <h3>Personal Book list</h3>
+      <ul>
+        <% let index = 0 %> <% for (index; index < user.books.length; index +=1)
+        {%>
+        <li><%= user.books[index].title %></li>
+        <% } %>
+      </ul>
+    </div>
+  </div>
+</div>

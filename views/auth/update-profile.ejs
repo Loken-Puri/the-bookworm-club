@@ -1,0 +1,76 @@
+<div class="update-profile-form">
+  <div class="form-cart">
+    <h2 class="update-profile-h2">
+      Hi <%= toUpdateUser.username %>, you can update your info here:
+    </h2>
+    <br />
+
+    <form action="/update-profile/<%= toUpdateUser._id %>" method="POST">
+      <div>
+        <label for="username">Username</label> <br />
+        <input
+          type="text"
+          id="username"
+          name="username"
+          placeholder="<%=
+        toUpdateUser.username %>"
+          required
+        />
+      </div>
+
+      <br />
+      <div>
+        <label for="firstName">First Name</label> <br />
+        <input
+          type="text"
+          id="firstName"
+          name="firstName"
+          placeholder="<%= toUpdateUser.firstName %>"
+        />
+      </div>
+
+      <br />
+
+      <div>
+        <label for="lastName">Last Name</label> <br />
+        <input
+          type="text"
+          id="lastName"
+          name="lastName"
+          placeholder="<%= toUpdateUser.lastName %>"
+        />
+      </div>
+
+      <br />
+
+      <div>
+        <label for="email">Email</label> <br />
+        <input
+          type="text"
+          id="email"
+          name="email"
+          placeholder="<%= toUpdateUser.email %>"
+          required
+        />
+      </div>
+
+      <br />
+
+      <div>
+        <label for="favoriteBook">Favorite Book</label> <br />
+        <input
+          type="text"
+          id="favoriteBook"
+          name="favoriteBook"
+          placeholder="The Simpsons Biography"
+        />
+      </div>
+
+      <br />
+      <br />
+      <form action="/auth/<%= toUpdateUser._id %>" method="POST">
+        <button type="submit" class="update-btn">Update Profile</button>
+      </form>
+    </form>
+  </div>
+</div>
