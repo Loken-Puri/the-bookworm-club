@@ -19,8 +19,8 @@ module.exports = app => {
         maxAge: 1500000
       },
       store: MongoStore.create({
-        mongoUrl: process.env.MONGODB_URI || 'mongodb://localhost/book-collection'
-        // mongoUrl: process.env.MONGODB_URI || 'mongodb://127.0.01:27017/book-collection'
+        // mongoUrl: process.env.MONGODB_URI || 'mongodb://localhost/book-collection'
+        mongoUrl: process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/book-collection'
       })
     })
   );
